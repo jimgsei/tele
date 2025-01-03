@@ -53,28 +53,31 @@ app.get('/channels', async (req, res) => {
     const detailedChannels = [];
     for (const channel of channels) {
       try {
-        // Realizar la solicitud desde el servidor
         const m3u8Response = await fetch(channel.url, {
           method: 'GET',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': '*/*',
+            'Connection': 'keep-alive',
           },
         });
 
-        // Obtener el contenido del enlace real
-        const m3u8Link = await m3u8Response.text();
+        if (!m3u8Response.ok) {
+          throw new Error(`HTTP error! status: ${m3u8Response.status}`);
+        }
+
+        const m3u8Link = await m3u8Response.text(); // Leer el contenido de la respuesta
         detailedChannels.push({
           name: channel.name,
           url: channel.url,
-          m3u8Link: m3u8Link.trim(), // Guardar el enlace o contenido devuelto
+          m3u8Link: m3u8Link.trim(),
         });
       } catch (error) {
         console.error(`Error al llamar a ${channel.url}: ${error.message}`);
         detailedChannels.push({
           name: channel.name,
           url: channel.url,
-          m3u8Link: null, // Guardar como null si no se puede obtener
+          m3u8Link: `Error: ${error.message}`,
         });
       }
     }
