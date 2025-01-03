@@ -26,7 +26,7 @@ app.get('/channels', async (req, res) => {
       return res.json({ channels: JSON.parse(channelsData), detailed: detailedChannelsData });
     }
 
-    // Si no los tenemos almacenados, los obtenemos de Vavoo
+    // Obtener canales de Vavoo
     const mainUrl = 'https://vavoo.to/channels';
     const proxyUrlForChannels = 'https://api.codetabs.com/v1/proxy/?quest=';
     const response = await fetch(proxyUrlForChannels + mainUrl);
@@ -35,7 +35,6 @@ app.get('/channels', async (req, res) => {
     // Filtrar canales de España con los nombres específicos
     const channels = data.filter(item => {
       const { country, name, id } = item;
-      const channelUrl = `https://oha.to/play/${id}/index.m3u8`;
       return country === 'Spain' && 
              (name.toLowerCase().includes('caza') || 
               name.toLowerCase().includes('toros') || 
@@ -54,19 +53,28 @@ app.get('/channels', async (req, res) => {
     const detailedChannels = [];
     for (const channel of channels) {
       try {
-        const m3u8Response = await fetch(channel.url);
-        const newParameter = await m3u8Response.text(); // Leer el contenido de la respuesta
+        // Realizar la solicitud desde el servidor
+        const m3u8Response = await fetch(channel.url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': '*/*',
+          },
+        });
+
+        // Obtener el contenido del enlace real
+        const m3u8Link = await m3u8Response.text();
         detailedChannels.push({
           name: channel.name,
           url: channel.url,
-          newParameter: newParameter.trim() // Guardar el nuevo parámetro que devuelve la URL
+          m3u8Link: m3u8Link.trim(), // Guardar el enlace o contenido devuelto
         });
       } catch (error) {
         console.error(`Error al llamar a ${channel.url}: ${error.message}`);
         detailedChannels.push({
           name: channel.name,
           url: channel.url,
-          newParameter: null // Guardar como null si no se puede obtener
+          m3u8Link: null, // Guardar como null si no se puede obtener
         });
       }
     }
