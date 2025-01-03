@@ -31,6 +31,9 @@ app.get('/proxy', async (req, res) => {
     // Obtener la URL final (redireccionada) después de seguir todas las redirecciones
     const finalUrl = response.url;
 
+    // Log para verificar la URL final
+    console.log("URL final obtenida: ", finalUrl); // Verificar que la URL sea la esperada
+
     // Enviar la URL final al cliente
     res.send(finalUrl);
 
@@ -44,4 +47,3 @@ app.get('/proxy', async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
-
