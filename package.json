@@ -1,7 +1,7 @@
 {
   "name": "my-project",
   "version": "1.0.0",
-  "description": "Servidor para manejo de CORS",
+  "description": "Servidor para manejar solicitudes con CORS",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,7 +9,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "cors": "^2.8.5",
-    "node-fetch": "^2.6.1"  // Usado para manejar solicitudes HTTP si es necesario
+    "node-fetch": "^2.6.1"
   },
   "engines": {
     "node": "16.x"
