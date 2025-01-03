@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Para realizar solicitudes a otros servidores
+const fetch = require('node-fetch'); // Para hacer solicitudes HTTP
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 // Habilitar CORS para todas las rutas
 app.use(cors());
 
-// Ruta del proxy
+// Ruta para manejar las solicitudes de proxy
 app.get('/proxy', async (req, res) => {
   const targetUrl = req.query.url; // Obtener la URL desde los parámetros de la solicitud
 
@@ -17,17 +17,22 @@ app.get('/proxy', async (req, res) => {
   }
 
   try {
-    // Realizar la solicitud GET al URL de destino
-    const response = await fetch(targetUrl);
-    
-    // Verificar si la respuesta fue exitosa
+    // Realizar la solicitud GET a la URL de destino, siguiendo las redirecciones
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      redirect: 'follow' // Esto sigue las redirecciones hasta la URL final
+    });
+
+    // Verificar si la respuesta es exitosa
     if (!response.ok) {
       return res.status(response.status).send('Error al obtener la URL');
     }
 
-    // Enviar el contenido recibido desde el servidor de destino
-    const data = await response.text(); // Puedes cambiarlo a .json() si esperas JSON
-    res.send(data);
+    // Obtener la URL final (redireccionada) después de seguir todas las redirecciones
+    const finalUrl = response.url;
+
+    // Enviar la URL final al cliente
+    res.send(finalUrl);
 
   } catch (error) {
     // Manejo de errores
@@ -39,3 +44,4 @@ app.get('/proxy', async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
+
