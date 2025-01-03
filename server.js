@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Para hacer solicitudes HTTP
+const fetch = require('node-fetch'); // Para realizar las solicitudes
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -8,38 +10,46 @@ const port = process.env.PORT || 3000;
 // Habilitar CORS para todas las rutas
 app.use(cors());
 
-// Ruta para manejar las solicitudes de proxy
-app.get('/proxy', async (req, res) => {
-  const targetUrl = req.query.url; // Obtener la URL desde los parámetros de la solicitud
-
-  if (!targetUrl) {
-    return res.status(400).send('Se requiere un parámetro de URL');
-  }
-
+// Ruta para obtener la lista de canales
+app.get('/channels', async (req, res) => {
   try {
-    // Realizar la solicitud GET a la URL de destino, siguiendo las redirecciones
-    const response = await fetch(targetUrl, {
-      method: 'GET',
-      redirect: 'follow' // Esto sigue las redirecciones hasta la URL final
-    });
-
-    // Verificar si la respuesta es exitosa
-    if (!response.ok) {
-      return res.status(response.status).send('Error al obtener la URL');
+    // Verificar si ya tenemos los canales almacenados
+    const channelsPath = path.join(__dirname, 'channels.json');
+    if (fs.existsSync(channelsPath)) {
+      const channelsData = fs.readFileSync(channelsPath, 'utf-8');
+      return res.json(JSON.parse(channelsData));
     }
 
-    // Obtener la URL final (redireccionada) después de seguir todas las redirecciones
-    const finalUrl = response.url;
+    // Si no los tenemos almacenados, los obtenemos de Vavoo
+    const mainUrl = 'https://vavoo.to/channels';
+    const proxyUrlForChannels = 'https://api.codetabs.com/v1/proxy/?quest=';
+    const response = await fetch(proxyUrlForChannels + mainUrl);
+    const data = await response.json();
 
-    // Log para verificar la URL final
-    console.log("URL final obtenida: ", finalUrl); // Verificar que la URL sea la esperada
+    // Filtrar canales de España con los nombres específicos
+    const channels = data.filter(item => {
+      const { country, name, id } = item;
+      const channelUrl = `https://vavoo.to/play/${id}/index.m3u8`;
+      return country === 'Spain' && 
+             (name.toLowerCase().includes('caza') || 
+              name.toLowerCase().includes('toros') || 
+              name.toLowerCase().includes('onetoro') || 
+              name.toLowerCase().includes('torole') || 
+              name.toLowerCase().includes('iberlia tv'));
+    }).map(item => ({
+      name: item.name,
+      url: `https://vavoo.to/play/${item.id}/index.m3u8`
+    }));
 
-    // Enviar la URL final al cliente
-    res.send(finalUrl);
+    // Almacenar los canales en un archivo JSON
+    fs.writeFileSync(channelsPath, JSON.stringify(channels));
+
+    // Devolver la lista de canales
+    res.json(channels);
 
   } catch (error) {
-    // Manejo de errores
-    res.status(500).send('Error al procesar la solicitud: ' + error.message);
+    console.error(error);
+    res.status(500).send('Error al obtener los canales');
   }
 });
 
