@@ -83,10 +83,10 @@ async function resolveUrl(url) {
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('Location'); // Obtener el nuevo enlace de redirección
       console.log(`Redirigiendo a: ${location}`);
-      return await resolveUrl(location); // Hacer la recursión hasta resolver la URL final
+      return location; // Retornar la URL final tal cual es
     }
 
-    return response.url; // Si no hay redirección, retornamos la URL original
+    return url; // Si no hay redirección, retornamos la URL original
 
   } catch (error) {
     console.error(`Error al resolver la URL: ${url}`, error);
