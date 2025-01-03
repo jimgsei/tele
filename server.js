@@ -23,35 +23,58 @@ app.get('/channels', async (req, res) => {
     // Si no los tenemos almacenados, los obtenemos de Vavoo
     const mainUrl = 'https://vavoo.to/channels';
     const proxyUrlForChannels = 'https://api.codetabs.com/v1/proxy/?quest=';
+
     const response = await fetch(proxyUrlForChannels + mainUrl);
     const data = await response.json();
 
     // Filtrar canales de España con los nombres específicos
-    const channels = data.filter(item => {
+    const channels = await Promise.all(data.map(async (item) => {
       const { country, name, id } = item;
-      const channelUrl = `https://oha.to/play/${id}/index.m3u8`;
-      return country === 'Spain' && 
-             (name.toLowerCase().includes('caza') || 
-              name.toLowerCase().includes('toros') || 
-              name.toLowerCase().includes('onetoro') || 
-              name.toLowerCase().includes('torole') || 
-              name.toLowerCase().includes('iberlia tv'));
-    }).map(item => ({
-      name: item.name,
-      url: `https://oha.to/play/${item.id}/index.m3u8`
+      if (country === 'Spain' && 
+          (name.toLowerCase().includes('caza') || 
+           name.toLowerCase().includes('toros') || 
+           name.toLowerCase().includes('onetoro') || 
+           name.toLowerCase().includes('torole') || 
+           name.toLowerCase().includes('iberlia tv'))) {
+
+        // Generar la URL para la solicitud de redirección de oha.to
+        const channelUrl = `https://oha.to/play/${id}/index.m3u8`;
+
+        // Resolver la URL para obtener la URL larga y completa (redirección)
+        const resolvedUrl = await resolveRedirect(channelUrl);
+        
+        return {
+          name: name,
+          url: resolvedUrl  // Almacenar la URL larga final
+        };
+      }
     }));
 
+    // Filtrar los canales que se hayan resuelto correctamente
+    const validChannels = channels.filter(channel => channel != null);
+
     // Almacenar los canales en un archivo JSON
-    fs.writeFileSync(channelsPath, JSON.stringify(channels));
+    fs.writeFileSync(channelsPath, JSON.stringify(validChannels));
 
     // Devolver la lista de canales
-    res.json(channels);
+    res.json(validChannels);
 
   } catch (error) {
     console.error(error);
     res.status(500).send('Error al obtener los canales');
   }
 });
+
+// Función para resolver la URL de oha.to y obtener el enlace largo
+async function resolveRedirect(url) {
+  try {
+    const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+    return response.url; // Esto devuelve la URL final después de seguir la redirección
+  } catch (error) {
+    console.error('Error al resolver la redirección:', error);
+    return url; // En caso de error, devolver la URL original
+  }
+}
 
 // Iniciar el servidor
 app.listen(port, () => {
