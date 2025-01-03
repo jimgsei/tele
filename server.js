@@ -43,9 +43,14 @@ app.get('/channels', async (req, res) => {
         // Resolver la URL para obtener la URL larga y completa (redirección)
         const resolvedUrl = await resolveRedirect(channelUrl);
         
+        // Hacer una segunda solicitud a la URL final para obtener la 'url2'
+        const finalUrl = await resolveRedirect(resolvedUrl);
+        
         return {
           name: name,
-          url: resolvedUrl  // Almacenar la URL larga final
+          initialUrl: channelUrl,   // La URL inicial
+          resolvedUrl: resolvedUrl, // La URL final (después de la primera redirección)
+          url2: finalUrl            // La URL final después de la segunda redirección
         };
       }
     }));
