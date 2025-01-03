@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 // Habilitar CORS para todas las rutas
 app.use(cors());
 
-// Ruta para obtener la lista de canales
+// Ruta para obtener la lista de canales y resolver URLs
 app.get('/channels', async (req, res) => {
   try {
     // Verificar si ya tenemos los canales almacenados
@@ -20,67 +20,59 @@ app.get('/channels', async (req, res) => {
       return res.json(JSON.parse(channelsData));
     }
 
-    // Si no los tenemos almacenados, los obtenemos de Vavoo
-    const mainUrl = 'https://vavoo.to/channels';
-    const proxyUrlForChannels = 'https://api.codetabs.com/v1/proxy/?quest=';
+    // Lista inicial de canales
+    const initialChannels = [
+      {
+        name: "ONETORO (6)",
+        initialUrl: "https://oha.to/play/1442267705/index.m3u8"
+      },
+      {
+        name: "IBERLIA TV (1)",
+        initialUrl: "https://oha.to/play/2193702924/index.m3u8"
+      },
+      {
+        name: "TOROS (6)",
+        initialUrl: "https://oha.to/play/142832720/index.m3u8"
+      },
+      // Agrega más canales según sea necesario
+    ];
 
-    const response = await fetch(proxyUrlForChannels + mainUrl);
-    const data = await response.json();
+    // Resolver las URLs para obtener las URL2
+    const channels = await Promise.all(initialChannels.map(async (channel) => {
+      const { name, initialUrl } = channel;
 
-    // Filtrar canales de España con los nombres específicos
-    const channels = await Promise.all(data.map(async (item) => {
-      const { country, name, id } = item;
-      if (country === 'Spain' && 
-          (name.toLowerCase().includes('caza') || 
-           name.toLowerCase().includes('toros') || 
-           name.toLowerCase().includes('onetoro') || 
-           name.toLowerCase().includes('torole') || 
-           name.toLowerCase().includes('iberlia tv'))) {
+      // Resolver la URL que devuelve el servidor
+      const resolvedUrl = await resolveRedirect(initialUrl);
 
-        // Generar la URL para la solicitud de redirección de oha.to
-        const channelUrl = `https://oha.to/play/${id}/index.m3u8`;
-
-        // Resolver la URL para obtener la URL larga y completa (redirección)
-        const resolvedUrl = await resolveRedirect(channelUrl);
-        
-        // Hacer una segunda solicitud a la URL final para obtener la 'url2'
-        const finalUrl = await resolveRedirect(resolvedUrl);
-        
-        return {
-          name: name,
-          initialUrl: channelUrl,   // La URL inicial
-          resolvedUrl: resolvedUrl, // La URL final (después de la primera redirección)
-          url2: finalUrl            // La URL final después de la segunda redirección
-        };
-      }
+      return {
+        name,
+        initialUrl,
+        url2: resolvedUrl
+      };
     }));
 
-    // Filtrar los canales que se hayan resuelto correctamente
-    const validChannels = channels.filter(channel => channel != null);
+    // Almacenar las URLs resueltas
+    fs.writeFileSync(channelsPath, JSON.stringify(channels, null, 2));
 
-    // Almacenar los canales en un archivo JSON
-    fs.writeFileSync(channelsPath, JSON.stringify(validChannels));
-
-    // Devolver la lista de canales
-    res.json(validChannels);
+    // Devolver la lista de canales con URL2
+    res.json(channels);
 
   } catch (error) {
     console.error(error);
-    res.status(500).send('Error al obtener los canales');
+    res.status(500).send('Error al procesar los canales');
   }
 });
 
-// Función para resolver la URL de oha.to y obtener el enlace largo
+// Función para resolver la redirección
 async function resolveRedirect(url) {
   try {
-    // Realiza la solicitud GET a la URL inicial
     const response = await fetch(url, { method: 'GET', redirect: 'follow' });
 
-    // La URL final tras la redirección es la que necesitamos
-    return response.url;  // Esto devuelve la URL larga y final después de seguir la redirección
+    // Devuelve la URL final después de las redirecciones
+    return response.url;
   } catch (error) {
-    console.error('Error al resolver la redirección:', error);
-    return url; // En caso de error, devolver la URL original
+    console.error(`Error al resolver URL: ${url}`, error);
+    return null; // Devuelve null si hay un problema
   }
 }
 
