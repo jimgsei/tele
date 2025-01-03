@@ -29,7 +29,7 @@ app.get('/channels', async (req, res) => {
     // Filtrar canales de España con los nombres específicos
     const channels = data.filter(item => {
       const { country, name, id } = item;
-      const channelUrl = `https://vavoo.to/play/${id}/index.m3u8`;
+      const channelUrl = `https://oha.to/play/${id}/index.m3u8`;
       return country === 'Spain' && 
              (name.toLowerCase().includes('caza') || 
               name.toLowerCase().includes('toros') || 
