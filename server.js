@@ -14,16 +14,16 @@ app.use(cors());
 app.get('/channels', async (req, res) => {
   try {
     const channelsPath = path.join(__dirname, 'channels.json');
-    const verifiedChannelsPath = path.join(__dirname, 'verified_channels.json');
+    const detailedChannelsPath = path.join(__dirname, 'detailed_channels.json');
 
     // Verificar si ya tenemos los canales almacenados
     if (fs.existsSync(channelsPath)) {
       const channelsData = fs.readFileSync(channelsPath, 'utf-8');
-      const verifiedChannelsData = fs.existsSync(verifiedChannelsPath)
-        ? JSON.parse(fs.readFileSync(verifiedChannelsPath, 'utf-8'))
+      const detailedChannelsData = fs.existsSync(detailedChannelsPath)
+        ? JSON.parse(fs.readFileSync(detailedChannelsPath, 'utf-8'))
         : [];
 
-      return res.json({ channels: JSON.parse(channelsData), verified: verifiedChannelsData });
+      return res.json({ channels: JSON.parse(channelsData), detailed: detailedChannelsData });
     }
 
     // Si no los tenemos almacenados, los obtenemos de Vavoo
@@ -50,26 +50,32 @@ app.get('/channels', async (req, res) => {
     // Almacenar los canales en un archivo JSON
     fs.writeFileSync(channelsPath, JSON.stringify(channels));
 
-    // Verificar los enlaces .m3u8
-    const verifiedChannels = [];
+    // Hacer llamadas a las URLs y guardar los resultados
+    const detailedChannels = [];
     for (const channel of channels) {
       try {
-        const testResponse = await fetch(channel.url, { method: 'HEAD' });
-        if (testResponse.ok) {
-          verifiedChannels.push(channel);
-        } else {
-          console.warn(`El enlace ${channel.url} no está disponible.`);
-        }
+        const m3u8Response = await fetch(channel.url);
+        const newParameter = await m3u8Response.text(); // Leer el contenido de la respuesta
+        detailedChannels.push({
+          name: channel.name,
+          url: channel.url,
+          newParameter: newParameter.trim() // Guardar el nuevo parámetro que devuelve la URL
+        });
       } catch (error) {
-        console.error(`Error al verificar ${channel.url}: ${error.message}`);
+        console.error(`Error al llamar a ${channel.url}: ${error.message}`);
+        detailedChannels.push({
+          name: channel.name,
+          url: channel.url,
+          newParameter: null // Guardar como null si no se puede obtener
+        });
       }
     }
 
-    // Guardar los canales verificados en un archivo JSON
-    fs.writeFileSync(verifiedChannelsPath, JSON.stringify(verifiedChannels));
+    // Guardar los resultados detallados en un archivo JSON
+    fs.writeFileSync(detailedChannelsPath, JSON.stringify(detailedChannels, null, 2));
 
-    // Devolver la lista de canales y los verificados
-    res.json({ channels, verified: verifiedChannels });
+    // Devolver los resultados
+    res.json({ channels, detailed: detailedChannels });
 
   } catch (error) {
     console.error(error);
