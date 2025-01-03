@@ -68,8 +68,11 @@ app.get('/channels', async (req, res) => {
 // Función para resolver la URL de oha.to y obtener el enlace largo
 async function resolveRedirect(url) {
   try {
+    // Realiza la solicitud GET a la URL inicial
     const response = await fetch(url, { method: 'GET', redirect: 'follow' });
-    return response.url; // Esto devuelve la URL final después de seguir la redirección
+
+    // La URL final tras la redirección es la que necesitamos
+    return response.url;  // Esto devuelve la URL larga y final después de seguir la redirección
   } catch (error) {
     console.error('Error al resolver la redirección:', error);
     return url; // En caso de error, devolver la URL original
