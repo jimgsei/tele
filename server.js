@@ -1,45 +1,26 @@
 const express = require('express');
 const cors = require('cors');
-const request = require('request');
-
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Habilitar CORS para todas las rutas
 app.use(cors());
 
-app.get('/', (req, res) => {
-    res.send('Proxy is running!');
-});
-
-app.get('/proxy', (req, res) => {
-    const url = req.query.url;
-    if (!url) {
-        return res.status(400).send('URL is required');
+// Ruta para manejar tus solicitudes
+app.get('/proxy', async (req, res) => {
+    try {
+        const targetUrl = req.query.url;
+        // Aquí puedes agregar la lógica para manejar el proxy si es necesario
+        // Si quieres hacer un proxy de otro recurso, podrías usar algo como axios o fetch
+        const response = await fetch(targetUrl);
+        const data = await response.text();
+        res.send(data);
+    } catch (error) {
+        res.status(500).send('Error al procesar la solicitud');
     }
-
-    // Agregar cabeceras adicionales para evitar que el servidor bloqueé las solicitudes
-    request(
-        { 
-            url: url, 
-            method: 'GET', 
-            headers: { 
-                'User-Agent': 'Mozilla/5.0', 
-                'Accept': 'application/json', 
-                'Accept-Encoding': 'gzip, deflate, br', 
-                'Referer': 'https://oha.to',
-                'Origin': 'https://oha.to',
-            }
-        },
-        (error, response, body) => {
-            if (error) {
-                return res.status(500).send(error.message);
-            }
-            res.set(response.headers);
-            res.send(body);
-        }
-    );
 });
 
+// Iniciar el servidor
 app.listen(port, () => {
-    console.log(`Proxy server running on port ${port}`);
+    console.log(`Servidor corriendo en http://localhost:${port}`);
 });
