@@ -49,7 +49,7 @@ app.get('/channels', async (req, res) => {
     // Almacenar los canales en un archivo JSON
     fs.writeFileSync(channelsPath, JSON.stringify(channels));
 
-    // Hacer llamadas a las URLs y guardar los resultados
+    // Hacer llamadas a las URLs y capturar el encabezado Location
     const detailedChannels = [];
     for (const channel of channels) {
       try {
@@ -62,18 +62,19 @@ app.get('/channels', async (req, res) => {
           },
         });
 
-        if (!m3u8Response.ok) {
-          throw new Error(`HTTP error! status: ${m3u8Response.status}`);
+        const location = m3u8Response.headers.get('location'); // Capturar encabezado Location
+
+        if (!location) {
+          throw new Error('El encabezado Location no está presente');
         }
 
-        const m3u8Link = await m3u8Response.text(); // Leer el contenido de la respuesta
         detailedChannels.push({
           name: channel.name,
           url: channel.url,
-          m3u8Link: m3u8Link.trim(),
+          m3u8Link: location, // Guardar el valor de Location
         });
       } catch (error) {
-        console.error(`Error al llamar a ${channel.url}: ${error.message}`);
+        console.error(`Error al procesar ${channel.url}: ${error.message}`);
         detailedChannels.push({
           name: channel.name,
           url: channel.url,
