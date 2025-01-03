@@ -1,14 +1,18 @@
 {
-  "name": "cors-proxy",
+  "name": "my-project",
   "version": "1.0.0",
-  "description": "A simple proxy to bypass CORS restrictions",
+  "description": "Servidor para manejo de CORS",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "express": "^4.17.1",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "request": "^2.88.2"
+    "node-fetch": "^2.6.1"  // Usado para manejar solicitudes HTTP si es necesario
+  },
+  "engines": {
+    "node": "16.x"
   }
 }
+
