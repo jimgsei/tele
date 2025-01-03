@@ -50,11 +50,11 @@ app.get('/channels', async (req, res) => {
 
     // Realizar la solicitud a todas las URLs y mostrar los resultados
     const results = await Promise.all(channels.map(async (channel) => {
-      const resolvedUrl = await resolveUrl(channel.url);
+      const resolvedUrl = await resolveUrl(channel.url);  // Aquí es donde obtenemos la URL real
       return {
         name: channel.name,
         originalUrl: channel.url,
-        resolvedUrl,
+        resolvedUrl,  // Aquí está la URL final tras la redirección
       };
     }));
 
@@ -66,7 +66,7 @@ app.get('/channels', async (req, res) => {
   }
 });
 
-// Función para resolver la URL real (tomando en cuenta redirecciones)
+// Función para resolver la URL real (obteniendo la URL final después de redirecciones)
 async function resolveUrl(url) {
   try {
     const response = await fetch(url, {
@@ -74,9 +74,9 @@ async function resolveUrl(url) {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
-        'Connection': 'keep-alive'
+        'Connection': 'keep-alive',
       },
-      redirect: 'follow' // Seguir redirecciones
+      redirect: 'follow', // Seguir las redirecciones
     });
 
     // Si hay redirección, obtenemos la URL final
