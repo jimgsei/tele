@@ -69,18 +69,24 @@ app.get('/channels', async (req, res) => {
 // Función para resolver la URL real (obteniendo la URL final después de redirecciones)
 async function resolveUrl(url) {
   try {
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
         'Connection': 'keep-alive',
       },
-      redirect: 'follow', // Seguir las redirecciones
+      redirect: 'manual', // No seguir automáticamente, manejaremos las redirecciones manualmente
     });
 
-    // Si hay redirección, obtenemos la URL final
-    return response.url;
+    // Aquí verificamos si hay una redirección
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('Location'); // Obtener el nuevo enlace de redirección
+      console.log(`Redirigiendo a: ${location}`);
+      return await resolveUrl(location); // Hacer la recursión hasta resolver la URL final
+    }
+
+    return response.url; // Si no hay redirección, retornamos la URL original
 
   } catch (error) {
     console.error(`Error al resolver la URL: ${url}`, error);
