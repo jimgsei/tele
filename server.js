@@ -38,7 +38,7 @@ app.get('/channels', async (req, res) => {
               name.toLowerCase().includes('iberlia tv'));
     }).map(item => ({
       name: item.name,
-      url: `https://vavoo.to/play/${item.id}/index.m3u8`
+      url: `https://oha.to/play/${item.id}/index.m3u8`
     }));
 
     // Almacenar los canales en un archivo JSON
