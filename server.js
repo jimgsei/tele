@@ -1,82 +1,52 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch'); // Para realizar las solicitudes
+const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-const app = express();
-const port = process.env.PORT || 3000;
+// URL del servidor local
+const serverUrl = 'http://localhost:3000/channels';
 
-// Habilitar CORS para todas las rutas
-app.use(cors());
+// Ruta donde guardaremos los datos
+const outputPath = path.join(__dirname, 'channels_with_m3u8.json');
 
-// Ruta para obtener la lista de canales y resolver URLs
-app.get('/channels', async (req, res) => {
+async function fetchAndSaveChannels() {
   try {
-    // Verificar si ya tenemos los canales almacenados
-    const channelsPath = path.join(__dirname, 'channels.json');
-    if (fs.existsSync(channelsPath)) {
-      const channelsData = fs.readFileSync(channelsPath, 'utf-8');
-      return res.json(JSON.parse(channelsData));
+    // Hacer la solicitud al servidor
+    const response = await fetch(serverUrl);
+    if (!response.ok) {
+      throw new Error(`Error al obtener canales: ${response.statusText}`);
     }
 
-    // Lista inicial de canales
-    const initialChannels = [
-      {
-        name: "ONETORO (6)",
-        initialUrl: "https://oha.to/play/1442267705/index.m3u8"
-      },
-      {
-        name: "IBERLIA TV (1)",
-        initialUrl: "https://oha.to/play/2193702924/index.m3u8"
-      },
-      {
-        name: "TOROS (6)",
-        initialUrl: "https://oha.to/play/142832720/index.m3u8"
-      },
-      // Agrega más canales según sea necesario
-    ];
+    // Obtener la lista de canales
+    const channels = await response.json();
 
-    // Resolver las URLs para obtener las URL2
-    const channels = await Promise.all(initialChannels.map(async (channel) => {
-      const { name, initialUrl } = channel;
+    // Crear un array para guardar los resultados con los enlaces .m3u8
+    const channelsWithUrls = [];
 
-      // Resolver la URL que devuelve el servidor
-      const resolvedUrl = await resolveRedirect(initialUrl);
+    for (const channel of channels) {
+      const { name, url } = channel;
 
-      return {
-        name,
-        initialUrl,
-        url2: resolvedUrl
-      };
-    }));
+      // Hacer una solicitud al enlace del canal para asegurarnos de que es accesible
+      try {
+        const m3u8Response = await fetch(url);
+        if (!m3u8Response.ok) {
+          console.warn(`No se pudo acceder al enlace ${url}`);
+          continue;
+        }
 
-    // Almacenar las URLs resueltas
-    fs.writeFileSync(channelsPath, JSON.stringify(channels, null, 2));
+        // Guardar el canal con su enlace verificado
+        channelsWithUrls.push({ name, url });
+      } catch (fetchError) {
+        console.error(`Error al acceder al enlace ${url}: ${fetchError.message}`);
+      }
+    }
 
-    // Devolver la lista de canales con URL2
-    res.json(channels);
-
+    // Guardar los resultados en un archivo JSON
+    fs.writeFileSync(outputPath, JSON.stringify(channelsWithUrls, null, 2));
+    console.log(`Canales guardados en ${outputPath}`);
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Error al procesar los canales');
-  }
-});
-
-// Función para resolver la redirección
-async function resolveRedirect(url) {
-  try {
-    const response = await fetch(url, { method: 'GET', redirect: 'follow' });
-
-    // Devuelve la URL final después de las redirecciones
-    return response.url;
-  } catch (error) {
-    console.error(`Error al resolver URL: ${url}`, error);
-    return null; // Devuelve null si hay un problema
+    console.error(`Error general: ${error.message}`);
   }
 }
 
-// Iniciar el servidor
-app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
-});
+// Ejecutar la función
+fetchAndSaveChannels();
