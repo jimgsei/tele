@@ -109,8 +109,11 @@ async function fetchFinalUrl(url) {
         redirect: 'follow', // Configurar para seguir automáticamente las redirecciones
       });
 
-      finalUrl = response.url; // Actualizar la URL final
-      if (!finalUrl || finalUrl === url) break; // Evitar bucles infinitos
+      if (response.url && response.url !== finalUrl) {
+        finalUrl = response.url; // Actualizar la URL final
+      } else {
+        break; // Salir del bucle si no hay más redirecciones
+      }
     }
 
     return finalUrl; // Retornar la URL final que termina en .m3u8
