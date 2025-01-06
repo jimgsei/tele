@@ -51,7 +51,9 @@ app.get('/channels', async (req, res) => {
     // Realizar la solicitud a todas las URLs y mostrar los resultados
     const results = await Promise.all(channels.map(async (channel) => {
       const resolvedUrl = await resolveUrl(channel.url);  // Aquí es donde obtenemos la URL real
+      console.log(`Resolved URL for ${channel.name}: ${resolvedUrl}`);
       const finalUrl = await fetchFinalUrl(resolvedUrl);  // Obtener el enlace final de redirección
+      console.log(`Final URL for ${channel.name}: ${finalUrl}`);
       return {
         name: channel.name,
         originalUrl: channel.url,
@@ -78,17 +80,10 @@ async function resolveUrl(url) {
         'Accept': '*/*',
         'Connection': 'keep-alive',
       },
-      redirect: 'manual', // No seguir automáticamente, manejaremos las redirecciones manualmente
+      redirect: 'follow', // Configurar para seguir automáticamente las redirecciones
     });
 
-    // Aquí verificamos si hay una redirección
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('Location'); // Obtener el nuevo enlace de redirección
-      console.log(`Redirigiendo a: ${location}`);
-      return location; // Retornar la URL final tal cual es
-    }
-
-    return url; // Si no hay redirección, retornamos la URL original
+    return response.url; // Retornar la URL final después de seguir las redirecciones
 
   } catch (error) {
     console.error(`Error al resolver la URL: ${url}`, error);
@@ -107,17 +102,11 @@ async function fetchFinalUrl(url) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
         'Connection': 'keep-alive',
-      }
+      },
+      redirect: 'follow', // Configurar para seguir automáticamente las redirecciones
     });
 
-    // Si hay otra redirección, manejarla aquí
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('Location');
-      console.log(`Redirigiendo nuevamente a: ${location}`);
-      return location;
-    }
-
-    return url;
+    return response.url; // Retornar la URL final después de seguir las redirecciones
 
   } catch (error) {
     console.error(`Error al obtener la URL final: ${url}`, error);
