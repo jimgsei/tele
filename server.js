@@ -96,17 +96,24 @@ async function fetchFinalUrl(url) {
   if (!url) return null;
 
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Connection': 'keep-alive',
-      },
-      redirect: 'follow', // Configurar para seguir automáticamente las redirecciones
-    });
+    let finalUrl = url;
 
-    return response.url; // Retornar la URL final después de seguir las redirecciones
+    while (!finalUrl.endsWith('.m3u8')) {
+      const response = await fetch(finalUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+          'Connection': 'keep-alive',
+        },
+        redirect: 'follow', // Configurar para seguir automáticamente las redirecciones
+      });
+
+      finalUrl = response.url; // Actualizar la URL final
+      if (!finalUrl || finalUrl === url) break; // Evitar bucles infinitos
+    }
+
+    return finalUrl; // Retornar la URL final que termina en .m3u8
 
   } catch (error) {
     console.error(`Error al obtener la URL final: ${url}`, error);
